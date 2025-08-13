@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Sentiment Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f8f9fa;
+            margin: 0;
+            padding: 20px;
+        }
+        h1 {
+            text-align: center;
+        }
+        .chart-container {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 20px;
+        }
+        .chart-box {
+            background: white;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            padding: 15px;
+            width: 45%;
+            min-width: 400px;
+        }
+        canvas {
+            width: 100% !important;
+            height: auto !important;
+        }
+    </style>
+</head>
+<body>
+    <h1>SBI Sentiment Dashboard</h1>
+    {% if no_data %}
+      <div style="text-align:center; color:red; font-weight:bold;">
+        No data available to display. Please upload and process a file first.
+      </div>
+    {% endif %}
+    {% if has_data %}
+      <div style="text-align:center; margin-bottom: 20px;">
+        <div style="background: white; padding: 15px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 20px; display: inline-block;">
+          <h3 style="margin: 0; color: #333;">📊 Total Mentions</h3>
+          <p style="font-size: 2em; font-weight: bold; color: #007bff; margin: 10px 0 0 0;">{{ total_mentions }}</p>
+        </div>
+      </div>
+      <div style="text-align:center; margin-bottom: 20px;">
+        <a href="/download" class="btn btn-success" style="text-decoration: none; padding: 10px 20px; background-color: #28a745; color: white; border-radius: 5px; font-weight: bold; margin-right: 10px;">
+          📥 Download Processed Excel File
+        </a>
+        <a href="/" class="btn btn-primary" style="text-decoration: none; padding: 10px 20px; background-color: #007bff; color: white; border-radius: 5px; font-weight: bold;">
+          📤 Upload Another File
+        </a>
+      </div>
+    {% endif %}
+    {% if not no_data %}
+    <div class="chart-container">
+        <div class="chart-box">
+            <h3>Sentiment Distribution</h3>
+            <canvas id="sentimentChart"></canvas>
+        </div>
+        <div class="chart-box">
+            <h3>Platform Sentiment Split</h3>
+            <canvas id="platformChart"></canvas>
+        </div>
+        <div class="chart-box" style="width: 90%;">
+            <h3>Topic-wise Sentiment</h3>
+            <canvas id="topicChart"></canvas>
+        </div>
+    </div>
+    <script>
+        const sentimentData = {{ sentiment_dist | tojson | safe }};
+        const platformData = {{ platform_sentiment | tojson | safe }};
+        const topicData = {{ topic_sentiment | tojson | safe }};
+
+        // Sentiment Pie Chart
+        const ctxSentiment = document.getElementById('sentimentChart');
+        // Map sentiment to color
+        const sentimentColorMap = {
+            'positive': '#28a745', // green
+            'neutral': '#ffc107',  // yellow
+            'negative': '#dc3545'  // red
+        };
+        const sentimentLabels = Object.keys(sentimentData);
+        const sentimentColors = sentimentLabels.map(label => sentimentColorMap[label] || '#cccccc');
+        new Chart(ctxSentiment, {
+            type: 'pie',
+            data: {
+                labels: sentimentLabels,
+                datasets: [{
+                    label: 'Sentiment Distribution',
+                    data: Object.values(sentimentData),
+                    backgroundColor: sentimentColors
+                }]
+            },
+            options: {
+                responsive: true
+            }
+        });
+
+        // Platform-wise Bar Chart (Stacked by sentiment)
+        const ctxPlatform = document.getElementById('platformChart');
+        const platformLabels = platformData.map(item => item.platform);
+        const sentiments = ['positive', 'neutral', 'negative'];
+        const platformDatasets = sentiments.map((sentiment, i) => ({
+            label: sentiment.charAt(0).toUpperCase() + sentiment.slice(1),
+            data: platformData.map(item => item[sentiment] || 0),
+            backgroundColor: ['#28a745', '#ffc107', '#dc3545'][i]
+        }));
+        new Chart(ctxPlatform, {
+            type: 'bar',
+            data: {
+                labels: platformLabels,
+                datasets: platformDatasets
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    x: { stacked: true },
+                    y: { stacked: true, beginAtZero: true }
+                }
+            }
+        });
+
+        // Topic-wise Sentiment Chart (Stacked Bar)
+        const ctxTopic = document.getElementById('topicChart');
+        const topicLabels = topicData.map(item => item.topic);
+        const topicDatasets = sentiments.map((sentiment, i) => ({
+            label: sentiment.charAt(0).toUpperCase() + sentiment.slice(1),
+            data: topicData.map(item => item[sentiment] || 0),
+            backgroundColor: ['#28a745', '#ffc107', '#dc3545'][i]
+        }));
+        new Chart(ctxTopic, {
+            type: 'bar',
+            data: {
+                labels: topicLabels,
+                datasets: topicDatasets
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    x: { stacked: true },
+                    y: { stacked: true, beginAtZero: true }
+                }
+            }
+        });
+    </script>
+    {% endif %}
+</body>
+</html>

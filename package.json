@@ -1,0 +1,13 @@
+{
+  "name": "sentiment-preprocess",
+  "version": "1.0.0",
+  "main": "process_sentiment.js",
+  "license": "MIT",
+  "dependencies": {
+    "sentiment": "^5.0.2",
+    "xlsx": "^0.18.5"
+  },
+  "scripts": {
+    "start": "node process_sentiment.js"
+  }
+}
